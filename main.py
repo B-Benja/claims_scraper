@@ -1,19 +1,20 @@
-## scraping number of patent claims
+"""
+This script scrapes the number of independent and dependent claims for patents
+from Google Patents and saves the results in a CSV file.
+"""
+
 import csv
 import requests
 from bs4 import BeautifulSoup
-from tqdm import tqdm
-
 
 G_PATENTS = 'https://patents.google.com/patent/'
 INPUT_CSV = 'input.csv'
 OUTPUT_CSV = 'output.csv'
 ERROR_DB = 'errors.csv'
 
-i = 0
-with open(INPUT_CSV, 'r') as input:
-    file = csv.reader(input, delimiter=',')
-    for row in file:
+with open(INPUT_CSV, 'r') as input_file:
+    file = csv.reader(input_file, delimiter=',')
+    for i, row in enumerate(file):
         patent = row[0].replace(' ', '') + row[1]
         url = f'{G_PATENTS}{patent}'
         request = requests.get(url=url)
@@ -26,17 +27,16 @@ with open(INPUT_CSV, 'r') as input:
             soup = BeautifulSoup(request.text, 'html.parser')
 
             try:
-            # get everything claims related
+                # Get everything claims related
                 claims = soup.find('section', {'itemprop': 'claims'})
 
-                # get the number of all claims
+                # Get the total number of claims
                 claims_total = int(claims.find('span', {'itemprop': 'count'}).text)
 
-                # number of dependent claims
+                # Get the number of dependent claims
                 claims_dep = len(claims.findAll('div', {'class': 'claim-dependent'}))
 
-                # number of independent claims (there is no clear way to identify independent claims;
-                # therefore no. indep. claims = total - dep. claims)
+                # Calculate the number of independent claims
                 claims_indep = claims_total - claims_dep
 
                 with open(OUTPUT_CSV, 'a') as output:
@@ -54,4 +54,3 @@ with open(INPUT_CSV, 'r') as input:
                     result.writerow([row[0], row[1], 'Other error', url])
 
         print(f"Done: {i}")
-        i += 1
